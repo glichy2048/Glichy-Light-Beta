@@ -1,5 +1,4 @@
 import type { DevelopValues, Photo } from "./types"
-import { NEUTRAL } from "./develop"
 
 export type AiModelId = "on-device-neural" | "gemini-2.5-flash" | "gemini-1.5-pro"
 
@@ -80,7 +79,7 @@ export type AutoDevelopResult = {
 
 export function analyzeImageMetrics(data: Uint8ClampedArray, w: number, h: number) {
   let sumLuma = 0
-  let sumR = 0, sumG = 0, sumB = 0
+  let sumR = 0, sumB = 0
   let minL = 255, maxL = 0
   let clippedLo = 0, clippedHi = 0
   const total = w * h
@@ -89,7 +88,7 @@ export function analyzeImageMetrics(data: Uint8ClampedArray, w: number, h: numbe
     const r = data[i], g = data[i + 1], b = data[i + 2]
     const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
     sumLuma += luma
-    sumR += r; sumG += g; sumB += b
+    sumR += r; sumB += b
     if (luma < minL) minL = luma
     if (luma > maxL) maxL = luma
     if (luma <= 8) clippedLo++
@@ -290,8 +289,8 @@ Do not include markdown or backticks.`,
 
   // Built-in intelligent semantic style parser
   const out: Partial<DevelopValues> = {}
-  let name = "Custom Style"
-  let desc = `Graded for "${prompt}".`
+  let name: string
+  let desc: string
 
   if (p.includes("teal") || p.includes("orange") || p.includes("cinematic") || p.includes("blockbuster")) {
     name = "Cinematic Teal & Orange"

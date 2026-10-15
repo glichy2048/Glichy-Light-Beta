@@ -1,0 +1,8 @@
+{
+  "name": "Glichylight - Photo Editor",
+  "description": "A local-first, non-destructive photo editor prototype in the style of Lightroom with RAW processing, tone curves, and library cataloging.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

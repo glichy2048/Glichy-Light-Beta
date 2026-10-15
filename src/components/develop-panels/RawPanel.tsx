@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Toggle, Slider } from "../ui"
-import { RAW_WB_PRESETS, type RawWbPreset, isRaw } from "../../app/raw"
+import { type RawWbPreset, isRaw } from "../../app/raw"
 import type { DevelopValues, Photo } from "../../app/types"
 
 const CAMERA_PROFILES = [

@@ -312,7 +312,7 @@ export function demosaicBayer(
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = (y * w + x) * 4
-      let r = 0, g = 0, b = 0
+      let r: number, g: number, b: number
 
       if (isGreen(x, y)) {
         g = at(x, y)
