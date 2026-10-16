@@ -12,6 +12,8 @@ toneKey
 import type { DevelopValues,Photo } from "../app/types"
 import { PhotoArt } from "./ui"
 
+import { Log } from "../app/diagnostics"
+
 export type WorkingImage = { data: Uint8ClampedArray; w: number; h: number }
 export const workingCache = new Map<string, Promise<WorkingImage>>()
 export const WORK_MAX = 1400
@@ -19,6 +21,7 @@ export const WORK_MAX = 1400
 export function loadWorkingImage(src: string): Promise<WorkingImage> {
   let hit = workingCache.get(src)
   if (!hit) {
+    const t0 = performance.now()
     hit = new Promise((resolve, reject) => {
       const img = new Image()
       img.onload = () => {
@@ -28,11 +31,19 @@ export function loadWorkingImage(src: string): Promise<WorkingImage> {
         const c = document.createElement("canvas")
         c.width = w
         c.height = h
-        const ctx = c.getContext("2d", { willReadFrequently: true })!
+        const ctx = c.getContext("2d", { willReadFrequently: true })
+        if (!ctx) {
+          reject(new Error("Failed to get canvas 2d context"))
+          return
+        }
         ctx.drawImage(img, 0, 0, w, h)
+        Log.d("ImagePipeline", `Decoded image ${src.slice(0, 32)} (${w}×${h}) in ${Math.round(performance.now() - t0)}ms`)
         resolve({ data: ctx.getImageData(0, 0, w, h).data, w, h })
       }
-      img.onerror = () => reject(new Error("decode failed"))
+      img.onerror = () => {
+        Log.w("ImagePipeline", `Failed to decode working image from source: ${src.slice(0, 40)}`)
+        reject(new Error("decode failed"))
+      }
       img.src = src
     })
     workingCache.set(src, hit)

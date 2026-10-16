@@ -17,7 +17,9 @@ Edits are stored as a recipe (`DevelopValues`) per photo; the original is never 
 | `Ctrl/Cmd+Z`, `Ctrl+Shift+Z` or `Ctrl+Y` | Undo, redo |
 | `Ctrl/Cmd+C` / `V` | Copy / paste develop settings to the selection |
 | `Z` | Fit / 1:1 (Develop) |
-| `\` | Before / after (Develop) |
+| `Y` | Before / after view mode: Side-by-side, Overlaid, Single (Develop) |
+| `\` | Toggle Before / after (Develop) |
+| `L` | Lock center photo in place (Develop) |
 | `O` | Clipping overlay (Develop) |
 | `Left` / `Right` | Previous / next photo |
 | `Ctrl/Cmd+K` | Focus catalog search |

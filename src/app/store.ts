@@ -79,11 +79,28 @@ export const RECENT_COUNT = 12
 export const recentThreshold = (photos: Photo[]) =>
   [...photos].map((p) => p.id).sort((a, b) => b - a)[RECENT_COUNT - 1] ?? 0
 
+let prevPhotosRef: Photo[] | null = null
+let prevFiltersRef: Filters | null = null
+let prevGroupRawJpeg: boolean | null = null
+let prevSortRef: SortKey | null = null
+let cachedVisiblePhotos: Photo[] = []
+
 export function selectVisiblePhotos(state: State): Photo[] {
-  const { filters, preferences, sort } = state
+  const { filters, preferences, sort, photos } = state
+
+  // Fast path: if state slices affecting visibility haven't changed, reuse cached array
+  if (
+    photos === prevPhotosRef &&
+    filters === prevFiltersRef &&
+    preferences.groupRawJpeg === prevGroupRawJpeg &&
+    sort === prevSortRef
+  ) {
+    return cachedVisiblePhotos
+  }
+
   const terms = filters.query.toLowerCase().split(/\s+/).filter(Boolean)
-  const recentFloor = recentThreshold(state.photos)
-  const visible = state.photos.filter((photo) => {
+  const recentFloor = recentThreshold(photos)
+  const visible = photos.filter((photo) => {
     if (terms.length) {
       const hay = [photo.name, photo.camera, photo.lens, photo.format, photo.tone, ...photo.keywords]
         .join(" ")
@@ -99,11 +116,19 @@ export function selectVisiblePhotos(state: State): Photo[] {
     if (preferences.groupRawJpeg && photo.groupId && !photo.isGroupLead) return false
     return true
   })
-  return visible.sort((a, b) => {
+  const sorted = visible.sort((a, b) => {
     if (sort === "rating") return b.rating - a.rating
     if (sort === "name") return a.name.localeCompare(b.name)
     return b.id - a.id
   })
+
+  prevPhotosRef = photos
+  prevFiltersRef = filters
+  prevGroupRawJpeg = preferences.groupRawJpeg
+  prevSortRef = sort
+  cachedVisiblePhotos = sorted
+
+  return sorted
 }
 
 export const selectActivePhoto = (state: State): Photo =>

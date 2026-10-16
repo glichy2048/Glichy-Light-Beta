@@ -19,14 +19,62 @@ export const NEUTRAL: DevelopValues = {
   rotation: 0, vertical: 0,
 }
 
-// Fills fields missing from catalogs saved before the recipe grew.
+// Fills fields missing from catalogs saved before the recipe grew and clamps values safely.
 export const migrateDevelop = (d: Partial<DevelopValues> | undefined): DevelopValues => ({
   ...NEUTRAL,
-  ...d,
+  ...sanitizeRecipe(d ?? {}),
 })
+
+export const clamp = (num: number, min: number, max: number): number => {
+  if (typeof num !== "number" || !Number.isFinite(num)) return 0
+  return Math.min(max, Math.max(min, num))
+}
+
+export function sanitizeDevelopValue(key: keyof DevelopValues, value: unknown): number | boolean | string {
+  if (key === "lensProfile" || key === "chromaticAberration") {
+    return Boolean(value)
+  }
+  if (key === "lensModel") {
+    return typeof value === "string" ? value.slice(0, 80) : "Auto (EXIF)"
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return NEUTRAL[key] as number
+  }
+  switch (key) {
+    case "rotation":
+      return clamp(value, -180, 180)
+    case "distortion":
+      return clamp(value, -50, 50)
+    case "sharpRadius":
+      return clamp(value, 0, 3)
+    case "sharpDetail":
+    case "clarity":
+    case "sharpening":
+    case "noise":
+    case "noiseColor":
+    case "defringe":
+    case "vignetting":
+    case "vignetteMidpoint":
+      return clamp(value, 0, 100)
+    default:
+      return clamp(value, -100, 100)
+  }
+}
+
+export function sanitizeRecipe(recipe: Partial<DevelopValues>): Partial<DevelopValues> {
+  if (!recipe || typeof recipe !== "object") return {}
+  const sanitized: Partial<DevelopValues> = {}
+  for (const k of Object.keys(recipe) as (keyof DevelopValues)[]) {
+    if (k in NEUTRAL) {
+      sanitized[k] = sanitizeDevelopValue(k, recipe[k]) as never
+    }
+  }
+  return sanitized
+}
 
 export const isNeutral = (d: DevelopValues) =>
   (Object.keys(NEUTRAL) as (keyof DevelopValues)[]).every((k) => d[k] === NEUTRAL[k])
+
 
 export const TONE_KEYS = [
   "exposure", "contrast", "highlights", "shadows", "whites", "blacks",

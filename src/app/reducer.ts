@@ -1,7 +1,8 @@
-import { DEVELOP_LABELS, migrateDevelop, NEUTRAL, isNeutral, presetDevelop } from "./develop"
+import { DEVELOP_LABELS, migrateDevelop, NEUTRAL, isNeutral, presetDevelop, sanitizeDevelopValue, sanitizeRecipe } from "./develop"
 import { baseOf, type NewPhoto } from "./raw"
 import { initialPhotos } from "./catalog"
 import { CATALOG_VERSION, type CatalogSnapshot } from "../native/contracts"
+import { Log } from "./diagnostics"
 import type {
   ColorLabel,
   DevelopSnapshot,
@@ -180,7 +181,10 @@ export function reducer(state: State, action: Action): State {
     case "DEVELOP": {
       const photo = state.photos.find((p) => p.id === action.id)
       if (!photo) return state
-      const value = typeof action.value === "number" ? Math.round(action.value) : action.value
+      const value = sanitizeDevelopValue(
+        action.key,
+        typeof action.value === "number" ? Math.round(action.value) : action.value,
+      )
       const formatted =
         typeof value === "number"
           ? `${value > 0 ? "+" : ""}${value}`
@@ -189,6 +193,7 @@ export function reducer(state: State, action: Action): State {
               ? "On"
               : "Off"
             : String(value)
+      Log.d("Reducer", `DEVELOP [id=${action.id}] ${String(action.key)}=${formatted}`)
       return commit(
         state,
         action.id,
@@ -199,14 +204,17 @@ export function reducer(state: State, action: Action): State {
       )
     }
     case "RESET_DEVELOP":
+      Log.d("Reducer", `RESET_DEVELOP [id=${action.id}]`)
       return commit(state, action.id, { ...NEUTRAL }, "Reset all", action.at)
     case "PRESET": {
       const photo = state.photos.find((p) => p.id === action.id)
       if (!photo) return state
+      const safeValues = sanitizeRecipe(action.values)
+      Log.d("Reducer", `PRESET [id=${action.id}] ${action.name}`)
       return commit(
         state,
         action.id,
-        presetDevelop(photo.develop, action.values),
+        presetDevelop(photo.develop, safeValues),
         `Preset: ${action.name}`,
         action.at,
       )
@@ -224,10 +232,12 @@ export function reducer(state: State, action: Action): State {
       }
     }
     case "PASTE_RECIPE": {
+      const safeValues = sanitizeRecipe(action.values)
+      Log.d("Reducer", `PASTE_RECIPE [targets=${action.ids.length}]`)
       return action.ids.reduce((acc, id) => {
         const photo = acc.photos.find((p) => p.id === id)
         if (!photo) return acc
-        return commit(acc, id, presetDevelop(photo.develop, action.values), "Paste settings", action.at)
+        return commit(acc, id, presetDevelop(photo.develop, safeValues), "Paste settings", action.at)
       }, state)
     }
     case "UNDO":

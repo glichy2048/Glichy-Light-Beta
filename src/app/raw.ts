@@ -1,5 +1,6 @@
 import { NEUTRAL } from "./develop"
 import type { Photo, Tone } from "./types"
+import { Log, recordAssetLoad } from "./diagnostics"
 
 export const RAW_EXTENSIONS = [
   "cr2", "cr3", "crw", "nef", "nrw", "arw", "srf", "sr2", "dng", "orf",
@@ -73,6 +74,19 @@ const TYPE_SIZE: Record<number, number> = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 
 export const extOf = (name: string) => name.split(".").pop()?.toLowerCase() ?? ""
 export const baseOf = (name: string) => name.replace(/\.[^.]+$/, "").toLowerCase()
 export const isRaw = (name: string) => RAW_EXTENSIONS.includes(extOf(name))
+
+export function sanitizeFileName(name: string): string {
+  if (!name) return "unnamed_photo"
+  const base = name.split(/[/\\]/).pop() || "photo"
+  let clean = ""
+  for (let i = 0; i < base.length && clean.length < 120; i++) {
+    const code = base.charCodeAt(i)
+    if (code >= 32 && code < 127) {
+      clean += '<>"|?*:'.includes(base[i]) ? "_" : base[i]
+    }
+  }
+  return clean.trim() || "photo"
+}
 
 function jpegEnd(b: Uint8Array, start: number): number {
   if (b[start] !== 0xff || b[start + 1] !== 0xd8) return -1
@@ -498,6 +512,8 @@ export async function importFiles(
   }
   for (let i = 0; i < supported.length; i++) {
     const file = supported[i]
+    const safeName = sanitizeFileName(file.name)
+    const startImport = performance.now()
     onProgress?.(i, supported.length)
     try {
       const raw = isRaw(file.name)
@@ -518,7 +534,7 @@ export async function importFiles(
               meta.height = decoded.height
             }
           } catch {
-            result.noPreview.push(file.name)
+            result.noPreview.push(safeName)
           }
         }
       } else {
@@ -539,13 +555,13 @@ export async function importFiles(
         } catch {
           URL.revokeObjectURL(previewUrl)
           previewUrl = undefined
-          if (raw) result.noPreview.push(file.name)
+          if (raw) result.noPreview.push(safeName)
         }
       }
       if (meta.orientation && meta.orientation >= 5 && raw && width && height && width > height)
         [width, height] = [height, width]
       result.photos.push({
-        name: file.name,
+        name: safeName,
         tone: tones[(result.photos.length + file.size) % tones.length],
         format: raw ? "RAW" : "JPEG",
         date: formatDate(meta.date, file.lastModified),
@@ -564,8 +580,24 @@ export async function importFiles(
         develop: { ...defaultDevelop },
         previewUrl,
       })
-    } catch {
-      result.skipped.push(file.name)
+      recordAssetLoad({
+        id: `${safeName}-${file.size}-${file.lastModified}`,
+        name: safeName,
+        format: raw ? "RAW" : "JPEG",
+        status: previewUrl ? "loaded" : "loaded",
+        timeMs: Math.round(performance.now() - startImport),
+      })
+      Log.d("Import", `Imported ${safeName} (${raw ? "RAW" : "JPEG"}, ${formatBytes(file.size)}) in ${Math.round(performance.now() - startImport)}ms`)
+    } catch (err) {
+      recordAssetLoad({
+        id: `${safeName}-${file.size}`,
+        name: safeName,
+        format: isRaw(file.name) ? "RAW" : "JPEG",
+        status: "error",
+        error: err instanceof Error ? err.message : String(err),
+      })
+      Log.e("Import", `Failed to import ${safeName}:`, err)
+      result.skipped.push(safeName)
     }
   }
   onProgress?.(supported.length, supported.length)

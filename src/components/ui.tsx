@@ -7,7 +7,7 @@ HIST_BINS
 import { useAppState } from "../app/AppState"
 import type { ColorLabel,Photo } from "../app/types"
 
-export type IconName = "aperture" | "grid" | "review" | "compare" | "sliders" | "export" | "settings" | "search" | "plus" | "folder" | "chevron" | "star" | "flag" | "reject" | "check" | "image" | "crop" | "transform" | "mask" | "undo" | "redo" | "more" | "close" | "filter" | "sort" | "stack" | "info" | "keyboard" | "history" | "snapshot" | "play" | "pause"
+export type IconName = "aperture" | "grid" | "review" | "compare" | "sliders" | "export" | "settings" | "search" | "plus" | "folder" | "chevron" | "star" | "flag" | "reject" | "check" | "image" | "crop" | "transform" | "mask" | "undo" | "redo" | "more" | "close" | "filter" | "sort" | "stack" | "info" | "keyboard" | "history" | "snapshot" | "play" | "pause" | "lock" | "unlock"
 
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
   const props = {
@@ -143,6 +143,18 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     ),
     play: <path d="m9 6 9 6-9 6z" />,
     pause: <path d="M9 6v12M15 6v12" />,
+    lock: (
+      <>
+        <rect x="5" y="11" width="14" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </>
+    ),
+    unlock: (
+      <>
+        <rect x="5" y="11" width="14" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0a4 4 0 0 1 3.5 2" />
+      </>
+    ),
   }
   return <svg {...props}>{paths[name]}</svg>
 }
