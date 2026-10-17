@@ -22,6 +22,7 @@ type SelfTestResult,
 import { useAppState } from "../app/AppState"
 import type { View } from "../app/types"
 import { Icon,Button,Rating,MetadataChip,StatusControls,ScreenBar,Toggle } from "../components/ui"
+import { KeyboardShortcutGuide } from "../components/KeyboardShortcutGuide"
 
 export function SystemScreen({ navigate }: { navigate: (view: View) => void }) {
   const { activePhoto } = useAppState()
@@ -163,10 +164,13 @@ export function SystemScreen({ navigate }: { navigate: (view: View) => void }) {
             </div>
           </div>
         </SystemSection>
-        <SystemSection number="06" title="Diagnostics & crash reporting">
+        <SystemSection number="06" title="Keyboard shortcut reference guide">
+          <KeyboardShortcutGuide />
+        </SystemSection>
+        <SystemSection number="07" title="Diagnostics & crash reporting">
           <DiagnosticsPanel />
         </SystemSection>
-        <SystemSection number="07" title="Android creator & modding architecture">
+        <SystemSection number="08" title="Android creator & modding architecture">
           <CreatorGuideSection />
         </SystemSection>
       </main>
