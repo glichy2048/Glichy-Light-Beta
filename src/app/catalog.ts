@@ -74,7 +74,11 @@ export const initialPhotos: Photo[] = names.map((name, index) => {
       index % 3 === 0
         ? "28mm f/1.7"
         : index % 3 === 1
-          ? "35mm f/1.4"
+          ? (index % 6 === 1
+              ? "Sony FE 35mm f/1.4 GM"
+              : index % 6 === 4
+                ? "Sony FE 24-70mm f/2.8 GM II"
+                : "Sony FE 70-200mm f/2.8 GM OSS II")
           : "45mm f/2.8",
     dimensions: format === "RAW" ? "6000 × 4000" : "4000 × 2667",
     fileSize: format === "RAW" ? `${38 + index}.8 MB` : `${8 + index}.2 MB`,

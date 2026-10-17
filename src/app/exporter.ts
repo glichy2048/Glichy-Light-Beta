@@ -518,8 +518,9 @@ export async function renderPhoto(
 
   let final = tonedCanvas
   const netDistortion =
-    (photo.develop.lensProfile ? getProfileDistortion(photo.develop.lensModel) : 0) +
-    (photo.develop.distortion ?? 0)
+    (photo.develop.lensProfile
+      ? getProfileDistortion(photo.develop.lensModel, photo.lens, photo.camera)
+      : 0) + (photo.develop.distortion ?? 0)
 
   if (photo.develop.rotation !== 0 || photo.develop.vertical !== 0 || netDistortion !== 0) {
     final = document.createElement("canvas")

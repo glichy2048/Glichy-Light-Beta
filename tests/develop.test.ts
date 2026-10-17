@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { applyTone, boxBlur, curveLut, matchesPreset, migrateDevelop, NEUTRAL, PRESETS, presetDevelop } from "../src/app/develop"
+import {
+  applyTone,
+  boxBlur,
+  curveLut,
+  matchesPreset,
+  migrateDevelop,
+  NEUTRAL,
+  PRESETS,
+  presetDevelop,
+  detectLensFromExif,
+  preselectLensFromExif,
+} from "../src/app/develop"
 
 const w = 32
 const h = 32
@@ -112,6 +123,72 @@ describe("optics and lens profiles", () => {
     expect(getProfileDistortion("Manual")).toBe(0)
   })
 
+  it("supports Sony Alpha camera lenses with full-frame FE and APS-C E mounts", async () => {
+    const { getSonyAlphaLenses, resolveLensProfile, getProfileDistortion, getProfileVignette } =
+      await import("../src/app/develop")
+    const sonyLenses = getSonyAlphaLenses()
+    expect(sonyLenses.length).toBeGreaterThanOrEqual(20)
+
+    // Verify flagship G Master lenses
+    const gm2470 = sonyLenses.find((p) => p.id === "Sony FE 24-70mm f/2.8 GM II")
+    expect(gm2470).toBeDefined()
+    expect(gm2470?.series).toBe("G Master")
+    expect(gm2470?.mount).toBe("Sony FE")
+    expect(gm2470?.defaultDistortion).toBe(-12)
+    expect(gm2470?.defaultVignette).toBe(24)
+
+    const gm70200 = sonyLenses.find((p) => p.id === "Sony FE 70-200mm f/2.8 GM OSS II")
+    expect(gm70200).toBeDefined()
+    expect(gm70200?.series).toBe("G Master")
+    expect(gm70200?.defaultDistortion).toBe(-8)
+
+    // Verify Sony APS-C E-mount lenses
+    const e1655 = sonyLenses.find((p) => p.id === "Sony E 16-55mm f/2.8 G")
+    expect(e1655).toBeDefined()
+    expect(e1655?.mount).toBe("Sony E")
+    expect(e1655?.series).toBe("G")
+
+    // Test resolving via Auto (EXIF) with Sony camera and various EXIF strings
+    const resolvedFromExif = resolveLensProfile("Auto (EXIF)", "FE 24-70mm F2.8 GM II", "Sony ILCE-7M4")
+    expect(resolvedFromExif?.id).toBe("Sony FE 24-70mm f/2.8 GM II")
+
+    const resolvedA7RV = resolveLensProfile("Auto (EXIF)", "35mm f/1.4", "Sony α7R V")
+    expect(resolvedA7RV?.id).toBe("Sony FE 35mm f/1.4 GM")
+
+    const resolvedF50 = resolveLensProfile("Auto (EXIF)", "FE 50mm F1.2 GM", "Sony Alpha 1")
+    expect(resolvedF50?.id).toBe("Sony FE 50mm f/1.2 GM")
+
+    // Test calibrated distortion and vignette getters
+    expect(getProfileDistortion("Auto (EXIF)", "FE 24-70mm F2.8 GM II", "Sony ILCE-7RM5")).toBe(-12)
+    expect(getProfileVignette("Auto (EXIF)", "FE 24-70mm F2.8 GM II", "Sony ILCE-7RM5")).toBe(24)
+    expect(getProfileDistortion("Sony FE 70-200mm f/2.8 GM OSS II")).toBe(-8)
+
+    // Test Sony lens filtering by query
+    const filterSony = (query: string) => {
+      const q = query.trim().toLowerCase()
+      return sonyLenses.filter((p) => {
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.id.toLowerCase().includes(q) ||
+          (p.series?.toLowerCase().includes(q) ?? false) ||
+          (p.focalLength?.toLowerCase().includes(q) ?? false) ||
+          (p.aliases?.some((a) => a.toLowerCase().includes(q)) ?? false)
+        )
+      })
+    }
+
+    const matches2470 = filterSony("24-70")
+    expect(matches2470.length).toBeGreaterThanOrEqual(2)
+    expect(matches2470.some((l) => l.name.includes("24-70mm f/2.8 GM II"))).toBe(true)
+
+    const matchesGM = filterSony("GM")
+    expect(matchesGM.length).toBeGreaterThanOrEqual(4)
+    expect(matchesGM.every((l) => l.series === "G Master")).toBe(true)
+
+    const matches70200 = filterSony("70-200")
+    expect(matches70200.some((l) => l.name.includes("70-200mm"))).toBe(true)
+  })
+
   it("applies vignetting correction to image boundaries", () => {
     const neutralRes = applyTone(src, w, h, NEUTRAL).data
     const lightenedCorners = applyTone(src, w, h, { ...NEUTRAL, vignetting: 50 }).data
@@ -153,4 +230,66 @@ describe("AI assist & neural looks", () => {
     expect(look.styleName).toBeDefined()
   })
 })
+
+describe("EXIF lens detection and pre-selection helpers", () => {
+  it("detects Sony Alpha lens profile from exact EXIF metadata", () => {
+    const match = detectLensFromExif({
+      name: "DSC04891.ARW",
+      camera: "Sony ILCE-7RM5",
+      lens: "Sony FE 24-70mm f/2.8 GM II",
+    })
+    expect(match).toBeDefined()
+    expect(match?.profile.id).toBe("Sony FE 24-70mm f/2.8 GM II")
+    expect(match?.chipId).toBe("Sony FE 24-70mm f/2.8 GM II")
+    expect(match?.confidence).toBe("exact")
+    expect(match?.profile.mount).toBe("Sony FE")
+  })
+
+  it("detects lens from standard Sony alias or shorthand string", () => {
+    const match = detectLensFromExif({
+      name: "A7R5_PORTRAIT.ARW",
+      camera: "Sony α7R V",
+      lens: "FE 35mm F1.4 GM",
+    })
+    expect(match).toBeDefined()
+    expect(match?.profile.id).toBe("Sony FE 35mm f/1.4 GM")
+    expect(match?.confidence).toBe("exact")
+
+    const matchHeuristic = detectLensFromExif({
+      name: "STREET.JPG",
+      camera: "Sony Alpha 7 IV",
+      lens: "35mm f/1.4",
+    })
+    expect(matchHeuristic?.profile.id).toBe("Sony FE 35mm f/1.4 GM")
+  })
+
+  it("handles null or missing EXIF safely without errors", () => {
+    expect(detectLensFromExif(null)).toBeUndefined()
+    expect(detectLensFromExif(undefined)).toBeUndefined()
+    expect(detectLensFromExif({ name: "NO_EXIF.JPG", lens: "", camera: "" })).toBeUndefined()
+    expect(
+      detectLensFromExif({ name: "MANUAL.JPG", lens: "Vintage 50mm", camera: "Leica M3" })
+    ).toBeUndefined()
+  })
+
+  it("pre-selects lens chip ID when lensModel is empty or Auto (EXIF)", () => {
+    const photo = {
+      name: "TEST.ARW",
+      camera: "Sony α7R V",
+      lens: "FE 70-200mm F2.8 GM OSS II",
+      develop: { lensModel: "Auto (EXIF)" },
+    }
+    const preselected = preselectLensFromExif(photo)
+    expect(preselected).toBe("Sony FE 70-200mm f/2.8 GM OSS II")
+
+    // Does not override explicit custom lens selection unless forced
+    const photoExplicit = {
+      ...photo,
+      develop: { lensModel: "Sony FE 50mm f/1.2 GM" },
+    }
+    expect(preselectLensFromExif(photoExplicit)).toBe("Sony FE 50mm f/1.2 GM")
+    expect(preselectLensFromExif(photoExplicit, true)).toBe("Sony FE 70-200mm f/2.8 GM OSS II")
+  })
+})
+
 

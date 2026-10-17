@@ -722,3 +722,335 @@ kbd { padding: 2px 5px; border: 1px solid var(--line-strong); border-radius: 3px
   font: 10px "DM Mono", monospace;
 }
 
+/* Sony Alpha Lens Profile Cards and Badges */
+.sony-alpha-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(135deg, #ff4500, #ff6b35);
+  color: #fff;
+  font-weight: 700;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 1px 4px rgba(255, 69, 0, 0.35);
+}
+
+/* Sony Lens Search Box */
+.sony-lens-search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.sony-lens-search-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sony-lens-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.sony-search-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--muted);
+  pointer-events: none;
+  opacity: 0.7;
+}
+.sony-lens-search-input {
+  width: 100%;
+  height: 28px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 26px 0 26px;
+  font-size: 11px;
+  color: var(--text);
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.sony-lens-search-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+}
+.sony-lens-search-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+.sony-lens-search-clear {
+  position: absolute;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-pressed);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+.sony-lens-search-clear:hover {
+  background: var(--line-strong);
+  color: var(--text);
+}
+.sony-search-reset-link {
+  font-size: 9.5px;
+  color: #ff6b35;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+.sony-search-reset-link:hover {
+  color: #ff4500;
+}
+.sony-search-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--canvas);
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  width: 100%;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.sony-search-clear-inline {
+  align-self: flex-start;
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--surface-pressed);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--text);
+  cursor: pointer;
+}
+.sony-search-clear-inline:hover {
+  border-color: #ff6b35;
+  color: #ff6b35;
+}
+
+.sony-chips-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.sony-chips-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sony-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sony-lens-chip {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.sony-lens-chip:hover {
+  color: var(--text);
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.1);
+}
+.sony-lens-chip.active {
+  color: #fff;
+  border-color: #ff4500;
+  background: linear-gradient(135deg, rgba(255, 69, 0, 0.4), rgba(255, 107, 53, 0.25));
+  font-weight: 600;
+}
+.sony-lens-chip.exif-detected-chip {
+  border-color: #38bdf8;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sony-lens-chip.exif-detected-chip:not(.active) {
+  background: rgba(56, 189, 248, 0.08);
+  color: #e0f2fe;
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+}
+.sony-lens-chip.exif-detected-chip.active {
+  border-color: #38bdf8;
+  background: linear-gradient(135deg, rgba(255, 69, 0, 0.45), rgba(56, 189, 248, 0.35));
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+}
+.chip-exif-pill {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: #38bdf8;
+  color: #0c1524;
+  line-height: 12px;
+  text-transform: uppercase;
+  margin-left: 2px;
+}
+.sony-exif-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 8px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+.sony-exif-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sony-exif-tag-icon {
+  color: #38bdf8;
+  font-size: 10px;
+}
+.sony-exif-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.sony-exif-lens-name {
+  color: #38bdf8;
+  font-weight: 600;
+}
+.sony-exif-confidence-badge {
+  font-size: 8.5px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.sony-exif-preselect-btn {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  background: #38bdf8;
+  color: #0c1524;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.sony-exif-preselect-btn:hover {
+  background: #7dd3fc;
+}
+.lens-profile-card {
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.lens-profile-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.lens-profile-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+.lens-series-pill {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-pressed);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+.lens-series-pill.g-master {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #f87171;
+}
+.lens-series-pill.g-lens {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #e2e8f0;
+}
+.lens-series-pill.zeiss {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #60a5fa;
+}
+.lens-profile-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.lens-profile-specs strong {
+  color: var(--text);
+}
+.lens-profile-calib {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+  border-top: 1px dashed var(--line);
+  padding-top: 5px;
+}
+.lens-profile-calib strong {
+  color: var(--accent);
+}
+.lens-detected-hint {
+  width: 100%;
+  font-size: 9.5px;
+  color: #38bdf8;
+  font-family: "DM Mono", monospace;
+  margin-top: 2px;
+}
+

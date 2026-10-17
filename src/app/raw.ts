@@ -560,13 +560,27 @@ export async function importFiles(
       }
       if (meta.orientation && meta.orientation >= 5 && raw && width && height && width > height)
         [width, height] = [height, width]
+      const detectedCamera =
+        [meta.make, meta.model].filter(Boolean).join(" ").replace(/^(\w+) \1/i, "$1") ||
+        "Unknown camera"
+      let detectedLens = meta.lens?.trim() || ""
+      const isSonyCamera = /sony|ilce|alpha|α/i.test(detectedCamera)
+      if (detectedLens) {
+        if (isSonyCamera && !/^sony/i.test(detectedLens)) {
+          detectedLens = `Sony ${detectedLens}`
+        }
+      } else if (isSonyCamera) {
+        detectedLens = "Sony Alpha Lens"
+      } else if (!detectedLens) {
+        detectedLens = "Unknown lens"
+      }
       result.photos.push({
         name: safeName,
         tone: tones[(result.photos.length + file.size) % tones.length],
         format: raw ? "RAW" : "JPEG",
         date: formatDate(meta.date, file.lastModified),
-        camera: [meta.make, meta.model].filter(Boolean).join(" ").replace(/^(\w+) \1/i, "$1") || "Unknown camera",
-        lens: meta.lens || "Unknown lens",
+        camera: detectedCamera,
+        lens: detectedLens,
         dimensions: width && height ? `${width} × ${height}` : "—",
         fileSize: formatBytes(file.size),
         aperture: meta.fnumber ? `f/${+meta.fnumber.toFixed(1)}` : "—",

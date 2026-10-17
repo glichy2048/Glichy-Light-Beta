@@ -115,7 +115,7 @@ export function DevelopedImage({
         histRef.current?.(result.histogram)
       }
       const netDistortion =
-        (recipe.lensProfile ? getProfileDistortion(recipe.lensModel) : 0) +
+        (recipe.lensProfile ? getProfileDistortion(recipe.lensModel, photo.lens, photo.camera) : 0) +
         (recipe.distortion ?? 0)
       if (canvasRef.current && tonedRef.current)
         drawGeometry(
@@ -146,6 +146,8 @@ export function DevelopedImage({
     recipe.lensProfile,
     recipe.lensModel,
     recipe.distortion,
+    photo.lens,
+    photo.camera,
   ])
 
   if (!src)

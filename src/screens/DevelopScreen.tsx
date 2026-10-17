@@ -5,7 +5,7 @@ import {
 } from "react"
 import {
 NEUTRAL,
-PRESETS,approxFilter,matchesPreset,LENS_PROFILES
+PRESETS,approxFilter,matchesPreset,LENS_PROFILES,resolveLensProfile
 } from "../app/develop"
 import { useAppState } from "../app/AppState"
 import type { Photo,View } from "../app/types"
@@ -432,13 +432,90 @@ export function DevelopScreen({ navigate }: { navigate: (view: View) => void }) 
                       value={d.lensModel || "Auto (EXIF)"}
                       onChange={(e) => set("lensModel", e.target.value)}
                     >
-                      {LENS_PROFILES.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
+                      <optgroup label="Auto Detection">
+                        <option value="Auto (EXIF)">Auto (Detected from Lens EXIF)</option>
+                      </optgroup>
+                      <optgroup label="Sony Alpha Full-Frame (FE Mount)">
+                        {LENS_PROFILES.filter((p) => p.brand === "Sony" && p.mount === "Sony FE").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Sony Alpha APS-C (E Mount)">
+                        {LENS_PROFILES.filter((p) => p.brand === "Sony" && p.mount === "Sony E").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Canon RF Mount">
+                        {LENS_PROFILES.filter((p) => p.brand === "Canon").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Nikon Z Mount">
+                        {LENS_PROFILES.filter((p) => p.brand === "Nikon").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Fujifilm X Mount">
+                        {LENS_PROFILES.filter((p) => p.brand === "Fujifilm").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Leica M Mount">
+                        {LENS_PROFILES.filter((p) => p.brand === "Leica").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Generic & Manual">
+                        {LENS_PROFILES.filter((p) => p.brand === "Generic" || (p.brand === "Special" && p.id !== "Auto (EXIF)")).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
+
+                  {(() => {
+                    const detected = resolveLensProfile(d.lensModel, activePhoto?.lens, activePhoto?.camera)
+                    if (!detected || detected.id === "Manual") return null
+                    return (
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--muted)",
+                          padding: "3px 6px",
+                          borderRadius: "4px",
+                          background: "var(--canvas)",
+                          border: "1px solid var(--line)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                          {detected.brand === "Sony" && (
+                            <span className="sony-alpha-badge" style={{ fontSize: "8px", padding: "0 3px" }}>α</span>
+                          )}
+                          <strong style={{ color: "var(--text)" }}>{detected.name.replace(/^Sony\s+/, "")}</strong>
+                        </span>
+                        <span style={{ color: "var(--accent)", fontFamily: "DM Mono, monospace" }}>
+                          {detected.defaultDistortion}% dist
+                        </span>
+                      </div>
+                    )
+                  })()}
 
                   <div
                     className="toggle-row"
@@ -1104,7 +1181,7 @@ export function DevelopScreen({ navigate }: { navigate: (view: View) => void }) 
                     />
                   )}
                   {name === "Detail" && <DetailPanel values={d} onChange={set} />}
-                  {name === "Optics" && <OpticsPanel values={d} onChange={set} />}
+                  {name === "Optics" && <OpticsPanel values={d} onChange={set} photo={activePhoto} />}
                   {name === "Local adjustments" && <LocalAdjPanel />}
 
                   {sliders?.map(([label, key, min, max]) => (

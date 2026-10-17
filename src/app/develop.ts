@@ -1,4 +1,5 @@
 import type { DevelopValues } from "./types"
+import { Log } from "./diagnostics"
 
 export const NEUTRAL: DevelopValues = {
   exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
@@ -95,20 +96,643 @@ export const TONE_KEYS = [
 
 export const toneKey = (d: DevelopValues) => TONE_KEYS.map((k) => d[k]).join("|")
 
-export const LENS_PROFILES = [
-  { id: "Auto (EXIF)", name: "Auto (Detected from Lens EXIF)", defaultDistortion: -8, defaultVignette: 18 },
-  { id: "Sony FE 24-70mm f/2.8 GM II", name: "Sony FE 24-70mm f/2.8 GM II", defaultDistortion: -12, defaultVignette: 24 },
-  { id: "Canon RF 24-70mm f/2.8L IS USM", name: "Canon RF 24-70mm f/2.8L IS USM", defaultDistortion: -10, defaultVignette: 22 },
-  { id: "Nikon NIKKOR Z 24-70mm f/2.8 S", name: "Nikon NIKKOR Z 24-70mm f/2.8 S", defaultDistortion: -11, defaultVignette: 20 },
-  { id: "Fujifilm XF 16-55mm f/2.8 R LM WR", name: "Fujifilm XF 16-55mm f/2.8 R LM WR", defaultDistortion: -14, defaultVignette: 26 },
-  { id: "Leica Summilux-M 35mm f/1.4 ASPH", name: "Leica Summilux-M 35mm f/1.4 ASPH", defaultDistortion: 5, defaultVignette: 30 },
-  { id: "Generic 50mm Prime", name: "Generic 50mm F/1.8 Prime", defaultDistortion: -4, defaultVignette: 15 },
-  { id: "Manual", name: "Manual / Custom Calibration", defaultDistortion: 0, defaultVignette: 0 },
+export type LensProfile = {
+  id: string
+  name: string
+  brand: "Sony" | "Canon" | "Nikon" | "Fujifilm" | "Leica" | "Generic" | "Special"
+  mount?: "Sony FE" | "Sony E" | "Canon RF" | "Nikon Z" | "Fujifilm X" | "Leica M" | "Universal"
+  series?: "G Master" | "G" | "Zeiss" | "L-Series" | "S-Line" | "Red Badge" | "Prime" | "Standard"
+  focalLength?: string
+  maxAperture?: string
+  defaultDistortion: number
+  defaultVignette: number
+  chromaticAberration?: boolean
+  aliases?: string[]
+}
+
+export const LENS_PROFILES: LensProfile[] = [
+  {
+    id: "Auto (EXIF)",
+    name: "Auto (Detected from Lens EXIF)",
+    brand: "Special",
+    defaultDistortion: -8,
+    defaultVignette: 18,
+    aliases: ["auto", "exif", "detected"],
+  },
+  // --- Sony Alpha Full-Frame (FE Mount) ---
+  {
+    id: "Sony FE 24-70mm f/2.8 GM II",
+    name: "Sony FE 24-70mm f/2.8 GM II",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "24-70mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -12,
+    defaultVignette: 24,
+    chromaticAberration: true,
+    aliases: ["FE 24-70mm F2.8 GM II", "SEL2470GM2", "FE 24-70mm F2.8 GM2", "24-70mm GM II"],
+  },
+  {
+    id: "Sony FE 24-70mm f/2.8 GM",
+    name: "Sony FE 24-70mm f/2.8 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "24-70mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -14,
+    defaultVignette: 26,
+    chromaticAberration: true,
+    aliases: ["FE 24-70mm F2.8 GM", "SEL2470GM", "24-70mm GM"],
+  },
+  {
+    id: "Sony FE 70-200mm f/2.8 GM OSS II",
+    name: "Sony FE 70-200mm f/2.8 GM OSS II",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "70-200mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -8,
+    defaultVignette: 20,
+    chromaticAberration: true,
+    aliases: ["FE 70-200mm F2.8 GM OSS II", "SEL70200GM2", "70-200mm GM II", "70-200mm f/2.8"],
+  },
+  {
+    id: "Sony FE 70-200mm f/4 Macro G OSS II",
+    name: "Sony FE 70-200mm f/4 Macro G OSS II",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G",
+    focalLength: "70-200mm",
+    maxAperture: "f/4",
+    defaultDistortion: -7,
+    defaultVignette: 18,
+    chromaticAberration: true,
+    aliases: ["FE 70-200mm F4 Macro G OSS II", "SEL70200G2", "70-200mm F4 G II"],
+  },
+  {
+    id: "Sony FE 16-35mm f/2.8 GM II",
+    name: "Sony FE 16-35mm f/2.8 GM II",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "16-35mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -16,
+    defaultVignette: 28,
+    chromaticAberration: true,
+    aliases: ["FE 16-35mm F2.8 GM II", "SEL1635GM2", "16-35mm GM II", "16-35mm f/2.8"],
+  },
+  {
+    id: "Sony FE 12-24mm f/2.8 GM",
+    name: "Sony FE 12-24mm f/2.8 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "12-24mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -18,
+    defaultVignette: 30,
+    chromaticAberration: true,
+    aliases: ["FE 12-24mm F2.8 GM", "SEL1224GM", "12-24mm GM"],
+  },
+  {
+    id: "Sony FE 14mm f/1.8 GM",
+    name: "Sony FE 14mm f/1.8 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "14mm",
+    maxAperture: "f/1.8",
+    defaultDistortion: -15,
+    defaultVignette: 26,
+    chromaticAberration: true,
+    aliases: ["FE 14mm F1.8 GM", "SEL14F18GM", "14mm GM"],
+  },
+  {
+    id: "Sony FE 24mm f/1.4 GM",
+    name: "Sony FE 24mm f/1.4 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "24mm",
+    maxAperture: "f/1.4",
+    defaultDistortion: -6,
+    defaultVignette: 22,
+    chromaticAberration: true,
+    aliases: ["FE 24mm F1.4 GM", "SEL24F14GM", "24mm GM"],
+  },
+  {
+    id: "Sony FE 35mm f/1.4 GM",
+    name: "Sony FE 35mm f/1.4 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "35mm",
+    maxAperture: "f/1.4",
+    defaultDistortion: -5,
+    defaultVignette: 22,
+    chromaticAberration: true,
+    aliases: ["FE 35mm F1.4 GM", "SEL35F14GM", "35mm GM", "35mm f/1.4"],
+  },
+  {
+    id: "Sony FE 50mm f/1.2 GM",
+    name: "Sony FE 50mm f/1.2 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "50mm",
+    maxAperture: "f/1.2",
+    defaultDistortion: -4,
+    defaultVignette: 24,
+    chromaticAberration: true,
+    aliases: ["FE 50mm F1.2 GM", "SEL50F12GM", "50mm F1.2 GM", "50mm f/1.2"],
+  },
+  {
+    id: "Sony FE 50mm f/1.4 GM",
+    name: "Sony FE 50mm f/1.4 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "50mm",
+    maxAperture: "f/1.4",
+    defaultDistortion: -4,
+    defaultVignette: 20,
+    chromaticAberration: true,
+    aliases: ["FE 50mm F1.4 GM", "SEL50F14GM", "50mm F1.4 GM"],
+  },
+  {
+    id: "Sony FE 85mm f/1.4 GM II",
+    name: "Sony FE 85mm f/1.4 GM II",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "85mm",
+    maxAperture: "f/1.4",
+    defaultDistortion: -3,
+    defaultVignette: 18,
+    chromaticAberration: true,
+    aliases: ["FE 85mm F1.4 GM II", "SEL85F14GM2", "85mm GM II", "85mm f/1.4"],
+  },
+  {
+    id: "Sony FE 85mm f/1.8",
+    name: "Sony FE 85mm f/1.8",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "Standard",
+    focalLength: "85mm",
+    maxAperture: "f/1.8",
+    defaultDistortion: -4,
+    defaultVignette: 19,
+    chromaticAberration: true,
+    aliases: ["FE 85mm F1.8", "SEL85F18", "85mm F1.8", "85mm f/1.8"],
+  },
+  {
+    id: "Sony FE 135mm f/1.8 GM",
+    name: "Sony FE 135mm f/1.8 GM",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "135mm",
+    maxAperture: "f/1.8",
+    defaultDistortion: -2,
+    defaultVignette: 16,
+    chromaticAberration: true,
+    aliases: ["FE 135mm F1.8 GM", "SEL135F18GM", "135mm GM"],
+  },
+  {
+    id: "Sony FE 20-70mm f/4 G",
+    name: "Sony FE 20-70mm f/4 G",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G",
+    focalLength: "20-70mm",
+    maxAperture: "f/4",
+    defaultDistortion: -14,
+    defaultVignette: 24,
+    chromaticAberration: true,
+    aliases: ["FE 20-70mm F4 G", "SEL2070G", "20-70mm G"],
+  },
+  {
+    id: "Sony FE 24-105mm f/4 G OSS",
+    name: "Sony FE 24-105mm f/4 G OSS",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G",
+    focalLength: "24-105mm",
+    maxAperture: "f/4",
+    defaultDistortion: -13,
+    defaultVignette: 25,
+    chromaticAberration: true,
+    aliases: ["FE 24-105mm F4 G OSS", "SEL24105G", "24-105mm G"],
+  },
+  {
+    id: "Sony FE 90mm f/2.8 Macro G OSS",
+    name: "Sony FE 90mm f/2.8 Macro G OSS",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G",
+    focalLength: "90mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -2,
+    defaultVignette: 15,
+    chromaticAberration: true,
+    aliases: ["FE 90mm F2.8 Macro G OSS", "SEL90M28G", "90mm Macro"],
+  },
+  {
+    id: "Sony FE 200-600mm f/5.6-6.3 G OSS",
+    name: "Sony FE 200-600mm f/5.6-6.3 G OSS",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G",
+    focalLength: "200-600mm",
+    maxAperture: "f/5.6-6.3",
+    defaultDistortion: -5,
+    defaultVignette: 18,
+    chromaticAberration: true,
+    aliases: ["FE 200-600mm F5.6-6.3 G OSS", "SEL200600G", "200-600mm G"],
+  },
+  {
+    id: "Sony FE 100-400mm f/4.5-5.6 GM OSS",
+    name: "Sony FE 100-400mm f/4.5-5.6 GM OSS",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G Master",
+    focalLength: "100-400mm",
+    maxAperture: "f/4.5-5.6",
+    defaultDistortion: -6,
+    defaultVignette: 20,
+    chromaticAberration: true,
+    aliases: ["FE 100-400mm F4.5-5.6 GM OSS", "SEL100400GM", "100-400mm GM"],
+  },
+  {
+    id: "Sony FE 55mm f/1.8 ZA Sonnar T*",
+    name: "Sony FE 55mm f/1.8 ZA Sonnar T*",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "Zeiss",
+    focalLength: "55mm",
+    maxAperture: "f/1.8",
+    defaultDistortion: -3,
+    defaultVignette: 22,
+    chromaticAberration: true,
+    aliases: ["Sonnar T* FE 55mm F1.8 ZA", "SEL55F18Z", "55mm F1.8 ZA", "Zeiss 55mm"],
+  },
+  {
+    id: "Sony FE 40mm f/2.5 G",
+    name: "Sony FE 40mm f/2.5 G",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "G",
+    focalLength: "40mm",
+    maxAperture: "f/2.5",
+    defaultDistortion: -5,
+    defaultVignette: 20,
+    chromaticAberration: true,
+    aliases: ["FE 40mm F2.5 G", "SEL40F25G", "40mm G"],
+  },
+  {
+    id: "Sony FE 28-70mm f/3.5-5.6 OSS",
+    name: "Sony FE 28-70mm f/3.5-5.6 OSS",
+    brand: "Sony",
+    mount: "Sony FE",
+    series: "Standard",
+    focalLength: "28-70mm",
+    maxAperture: "f/3.5-5.6",
+    defaultDistortion: -10,
+    defaultVignette: 20,
+    chromaticAberration: true,
+    aliases: ["FE 28-70mm F3.5-5.6 OSS", "SEL2870", "28-70mm OSS"],
+  },
+  // --- Sony Alpha APS-C (E Mount) ---
+  {
+    id: "Sony E 16-55mm f/2.8 G",
+    name: "Sony E 16-55mm f/2.8 G",
+    brand: "Sony",
+    mount: "Sony E",
+    series: "G",
+    focalLength: "16-55mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -13,
+    defaultVignette: 22,
+    chromaticAberration: true,
+    aliases: ["E 16-55mm F2.8 G", "SEL1655G", "16-55mm F2.8 G"],
+  },
+  {
+    id: "Sony E 70-350mm f/4.5-6.3 G OSS",
+    name: "Sony E 70-350mm f/4.5-6.3 G OSS",
+    brand: "Sony",
+    mount: "Sony E",
+    series: "G",
+    focalLength: "70-350mm",
+    maxAperture: "f/4.5-6.3",
+    defaultDistortion: -8,
+    defaultVignette: 18,
+    chromaticAberration: true,
+    aliases: ["E 70-350mm F4.5-6.3 G OSS", "SEL70350G", "70-350mm G"],
+  },
+  {
+    id: "Sony E 10-20mm f/4 PZ G",
+    name: "Sony E 10-20mm f/4 PZ G",
+    brand: "Sony",
+    mount: "Sony E",
+    series: "G",
+    focalLength: "10-20mm",
+    maxAperture: "f/4",
+    defaultDistortion: -15,
+    defaultVignette: 25,
+    chromaticAberration: true,
+    aliases: ["E 10-20mm F4 PZ G", "SELP1020G", "10-20mm PZ G"],
+  },
+  {
+    id: "Sony E 15mm f/1.4 G",
+    name: "Sony E 15mm f/1.4 G",
+    brand: "Sony",
+    mount: "Sony E",
+    series: "G",
+    focalLength: "15mm",
+    maxAperture: "f/1.4",
+    defaultDistortion: -7,
+    defaultVignette: 22,
+    chromaticAberration: true,
+    aliases: ["E 15mm F1.4 G", "SEL15F14G", "15mm F1.4 G"],
+  },
+  {
+    id: "Sony E 16-50mm f/3.5-5.6 PZ OSS",
+    name: "Sony E 16-50mm f/3.5-5.6 PZ OSS",
+    brand: "Sony",
+    mount: "Sony E",
+    series: "Standard",
+    focalLength: "16-50mm",
+    maxAperture: "f/3.5-5.6",
+    defaultDistortion: -16,
+    defaultVignette: 26,
+    chromaticAberration: true,
+    aliases: ["E PZ 16-50mm F3.5-5.6 OSS", "SELP1650", "16-50mm PZ"],
+  },
+  // --- Other Mounts ---
+  {
+    id: "Canon RF 24-70mm f/2.8L IS USM",
+    name: "Canon RF 24-70mm f/2.8L IS USM",
+    brand: "Canon",
+    mount: "Canon RF",
+    series: "L-Series",
+    focalLength: "24-70mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -10,
+    defaultVignette: 22,
+    aliases: ["RF 24-70mm F2.8L IS USM"],
+  },
+  {
+    id: "Nikon NIKKOR Z 24-70mm f/2.8 S",
+    name: "Nikon NIKKOR Z 24-70mm f/2.8 S",
+    brand: "Nikon",
+    mount: "Nikon Z",
+    series: "S-Line",
+    focalLength: "24-70mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -11,
+    defaultVignette: 20,
+    aliases: ["NIKKOR Z 24-70mm f/2.8 S"],
+  },
+  {
+    id: "Fujifilm XF 16-55mm f/2.8 R LM WR",
+    name: "Fujifilm XF 16-55mm f/2.8 R LM WR",
+    brand: "Fujifilm",
+    mount: "Fujifilm X",
+    series: "Red Badge",
+    focalLength: "16-55mm",
+    maxAperture: "f/2.8",
+    defaultDistortion: -14,
+    defaultVignette: 26,
+    aliases: ["XF 16-55mm F2.8 R LM WR"],
+  },
+  {
+    id: "Leica Summilux-M 35mm f/1.4 ASPH",
+    name: "Leica Summilux-M 35mm f/1.4 ASPH",
+    brand: "Leica",
+    mount: "Leica M",
+    series: "Prime",
+    focalLength: "35mm",
+    maxAperture: "f/1.4",
+    defaultDistortion: 5,
+    defaultVignette: 30,
+    aliases: ["Summilux-M 35mm f/1.4 ASPH", "28mm f/1.7"],
+  },
+  {
+    id: "Generic 50mm Prime",
+    name: "Generic 50mm F/1.8 Prime",
+    brand: "Generic",
+    mount: "Universal",
+    series: "Standard",
+    focalLength: "50mm",
+    maxAperture: "f/1.8",
+    defaultDistortion: -4,
+    defaultVignette: 15,
+  },
+  {
+    id: "Manual",
+    name: "Manual / Custom Calibration",
+    brand: "Special",
+    defaultDistortion: 0,
+    defaultVignette: 0,
+  },
 ]
 
-export function getProfileDistortion(model?: string): number {
-  const match = LENS_PROFILES.find((p) => p.id === model)
+export function resolveLensProfile(
+  model?: string,
+  photoLens?: string,
+  camera?: string,
+): LensProfile | undefined {
+  if (model && model !== "Auto (EXIF)") {
+    const direct = LENS_PROFILES.find((p) => p.id === model)
+    if (direct) return direct
+  }
+
+  const rawLens = (photoLens || "").trim()
+  const rawCam = (camera || "").toLowerCase()
+  const isSony =
+    rawCam.includes("sony") ||
+    rawCam.includes("ilce") ||
+    rawCam.includes("α") ||
+    rawCam.includes("alpha")
+
+  if (rawLens) {
+    const lower = rawLens.toLowerCase()
+
+    // 1. Exact match on id or name
+    for (const p of LENS_PROFILES) {
+      if (p.id.toLowerCase() === lower || p.name.toLowerCase() === lower) return p
+    }
+
+    // 2. Exact alias match
+    for (const p of LENS_PROFILES) {
+      if (p.aliases?.some((a) => a.toLowerCase() === lower)) return p
+    }
+
+    // 3. Substring alias match
+    for (const p of LENS_PROFILES) {
+      if (p.aliases?.some((a) => lower.includes(a.toLowerCase()))) return p
+    }
+
+    // 4. Heuristics for Sony Alpha camera / lens combinations
+    if (isSony || lower.includes("fe") || lower.includes("sel") || lower.includes("sony")) {
+      if (lower.includes("24-70") && (lower.includes("ii") || lower.includes("gm2")))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 24-70mm f/2.8 GM II")
+      if (lower.includes("24-70"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 24-70mm f/2.8 GM II")
+      if (lower.includes("70-200") && (lower.includes("2.8") || lower.includes("gm")))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 70-200mm f/2.8 GM OSS II")
+      if (lower.includes("70-200") && lower.includes("f/4"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 70-200mm f/4 Macro G OSS II")
+      if (lower.includes("16-35"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 16-35mm f/2.8 GM II")
+      if (lower.includes("12-24"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 12-24mm f/2.8 GM")
+      if (lower.includes("14mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 14mm f/1.8 GM")
+      if (lower.includes("24mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 24mm f/1.4 GM")
+      if (lower.includes("35mm") && lower.includes("1.4"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 35mm f/1.4 GM")
+      if (lower.includes("50mm") && lower.includes("1.2"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 50mm f/1.2 GM")
+      if (lower.includes("50mm") && lower.includes("1.4"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 50mm f/1.4 GM")
+      if (lower.includes("85mm") && lower.includes("1.4"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 85mm f/1.4 GM II")
+      if (lower.includes("85mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 85mm f/1.8")
+      if (lower.includes("135mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 135mm f/1.8 GM")
+      if (lower.includes("20-70"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 20-70mm f/4 G")
+      if (lower.includes("24-105"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 24-105mm f/4 G OSS")
+      if (lower.includes("90mm") || lower.includes("macro"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 90mm f/2.8 Macro G OSS")
+      if (lower.includes("200-600"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 200-600mm f/5.6-6.3 G OSS")
+      if (lower.includes("100-400"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 100-400mm f/4.5-5.6 GM OSS")
+      if (lower.includes("55mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 55mm f/1.8 ZA Sonnar T*")
+      if (lower.includes("40mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 40mm f/2.5 G")
+      if (lower.includes("28-70"))
+        return LENS_PROFILES.find((p) => p.id === "Sony FE 28-70mm f/3.5-5.6 OSS")
+      if (lower.includes("16-55"))
+        return LENS_PROFILES.find((p) => p.id === "Sony E 16-55mm f/2.8 G")
+      if (lower.includes("70-350"))
+        return LENS_PROFILES.find((p) => p.id === "Sony E 70-350mm f/4.5-6.3 G OSS")
+      if (lower.includes("10-20"))
+        return LENS_PROFILES.find((p) => p.id === "Sony E 10-20mm f/4 PZ G")
+      if (lower.includes("15mm"))
+        return LENS_PROFILES.find((p) => p.id === "Sony E 15mm f/1.4 G")
+      if (lower.includes("16-50"))
+        return LENS_PROFILES.find((p) => p.id === "Sony E 16-50mm f/3.5-5.6 PZ OSS")
+    }
+  }
+
+  return LENS_PROFILES.find((p) => p.id === "Auto (EXIF)")
+}
+
+export type ExifLensMatch = {
+  profile: LensProfile
+  chipId: string
+  confidence: "exact" | "high" | "heuristic"
+  rawLens: string
+  rawCamera: string
+  matchedOn: string
+}
+
+/**
+ * Helper function that reads EXIF data from the selected photo to determine the matching
+ * lens profile and chip identifier, enabling automatic pre-selection or highlighting.
+ */
+export function detectLensFromExif(
+  photo?: { lens?: string; camera?: string; aperture?: string; name?: string } | null
+): ExifLensMatch | undefined {
+  if (!photo) return undefined
+  const lens = (photo.lens || "").trim()
+  const camera = (photo.camera || "").trim()
+
+  if (!lens && !camera) return undefined
+
+  Log.d(
+    "Optics",
+    `detectLensFromExif analyzing photo="${photo.name || "unnamed"}" lens="${lens}" camera="${camera}"`
+  )
+
+  const profile = resolveLensProfile(undefined, lens, camera)
+  if (!profile || profile.id === "Auto (EXIF)" || profile.id === "Manual") {
+    Log.d("Optics", `detectLensFromExif no specific profile matched for lens="${lens}"`)
+    return undefined
+  }
+
+  const lower = lens.toLowerCase()
+  const isExact =
+    profile.id.toLowerCase() === lower ||
+    profile.name.toLowerCase() === lower ||
+    Boolean(profile.aliases?.some((a) => a.toLowerCase() === lower))
+
+  const isAliasSub = Boolean(profile.aliases?.some((a) => lower.includes(a.toLowerCase())))
+
+  const confidence: "exact" | "high" | "heuristic" = isExact
+    ? "exact"
+    : isAliasSub
+      ? "high"
+      : "heuristic"
+
+  const matchedOn = isExact ? "name/id" : isAliasSub ? "alias" : "camera-lens heuristic"
+
+  const match: ExifLensMatch = {
+    profile,
+    chipId: profile.id,
+    confidence,
+    rawLens: lens,
+    rawCamera: camera,
+    matchedOn,
+  }
+
+  Log.d(
+    "Optics",
+    `detectLensFromExif matched profile: "${profile.name}" (${profile.mount || "Generic"}) with confidence: ${confidence}`
+  )
+  return match
+}
+
+/**
+ * Automatically determines if a lens chip should be pre-selected from photo EXIF.
+ * Returns the lensModel ID if auto-preselection applies, or undefined.
+ */
+export function preselectLensFromExif(
+  photo?: { lens?: string; camera?: string; develop?: { lensModel?: string } } | null,
+  forcePreselect?: boolean
+): string | undefined {
+  if (!photo) return undefined
+  // If already set to a specific profile and not forcing, respect existing setting
+  if (!forcePreselect && photo.develop?.lensModel && photo.develop.lensModel !== "Auto (EXIF)") {
+    return photo.develop.lensModel
+  }
+  const match = detectLensFromExif(photo)
+  return match?.profile.id
+}
+
+export function getSonyAlphaLenses(): LensProfile[] {
+  return LENS_PROFILES.filter((p) => p.brand === "Sony")
+}
+
+export function getProfileDistortion(model?: string, photoLens?: string, camera?: string): number {
+  const match = resolveLensProfile(model, photoLens, camera)
   return match?.defaultDistortion ?? -8
+}
+
+export function getProfileVignette(model?: string, photoLens?: string, camera?: string): number {
+  const match = resolveLensProfile(model, photoLens, camera)
+  return match?.defaultVignette ?? 18
 }
 
 export const DEVELOP_LABELS: Record<keyof DevelopValues, string> = {
