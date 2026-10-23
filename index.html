@@ -2,7 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- iPhone web app: the editor layout is designed at a 1100px minimum width,
+         so the viewport lays out at 1100px and iOS scales it to fit the screen.
+         Pinch-zoom stays enabled to zoom into panels. Best in landscape. -->
+    <meta name="viewport" content="width=1100, viewport-fit=cover, user-scalable=yes" />
+    <meta name="theme-color" content="#0f0e0c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Glichylight" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Glichylight - Photo Editor</title>
     <meta name="description" content="A local-first, non-destructive photo editor prototype in the style of Lightroom" />
     <meta property="og:title" content="Glichylight - Photo Editor" />
