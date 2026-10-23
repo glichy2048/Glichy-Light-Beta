@@ -9,10 +9,11 @@ import type { ColorLabel,Photo } from "../app/types"
 
 export type IconName = "aperture" | "grid" | "review" | "compare" | "sliders" | "export" | "settings" | "search" | "plus" | "folder" | "chevron" | "star" | "flag" | "reject" | "check" | "image" | "crop" | "transform" | "mask" | "undo" | "redo" | "more" | "close" | "filter" | "sort" | "stack" | "info" | "keyboard" | "history" | "snapshot" | "play" | "pause" | "lock" | "unlock"
 
-export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+export function Icon({ name, size = 18, style }: { name: IconName; size?: number; style?: CSSProperties }) {
   const props = {
     width: size,
     height: size,
+    style,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",

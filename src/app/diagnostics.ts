@@ -127,9 +127,10 @@ export function safeJsonParse<T>(raw: string | null, fallback: T): T {
   try {
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed === "object") {
-      delete (parsed as Record<string, unknown>).__proto__
-      delete (parsed as Record<string, unknown>).constructor
-      delete (parsed as Record<string, unknown>).prototype
+      const record = parsed as Record<string, unknown>
+      delete record["__proto__"]
+      delete record["constructor"]
+      delete record["prototype"]
     }
     return parsed as T
   } catch {

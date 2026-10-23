@@ -5,7 +5,7 @@ import { log } from "./diagnostics"
 import { isTauri } from "../native/ipc"
 import { tauriCatalogGateway } from "./tauriCatalogGateway"
 import { initialState, reducer, toSnapshot, type Action, type SaveStatus, type State } from "./reducer"
-import type { Photo } from "./types"
+import type { Filters, Photo, SortKey } from "./types"
 
 type StoreState = State & {
   hydrated: boolean
