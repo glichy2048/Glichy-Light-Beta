@@ -1,0 +1,258 @@
+Glichylight Repository Recommendations
+Repository: glichy2048/Glichy-Light-Beta
+Generated: October 26, 2026
+
+EXECUTIVE SUMMARY
+
+Glichylight is a local-first, non-destructive photo editor prototype modeled after Lightroom. It uses React 19, TypeScript, Vite, Zustand, Tailwind CSS, Vitest, and an in-progress Tauri/Rust desktop core.
+
+The repository has a strong foundation: editing state is separated from rendering logic, catalog persistence has browser and Tauri gateways, the reducer supports undo/redo and snapshots, and the tone pipeline is reusable for previews and exports. The main risks are incomplete native functionality, an unsafe synthetic RAW fallback, browser memory pressure with large catalogs, a very large DevelopScreen component, and the absence of visible automated CI.
+
+REPOSITORY STRENGTHS
+
+- Clear domain separation across src/app, src/components, src/screens, src/native, and src-tauri.
+- Non-destructive editing model using DevelopValues recipes rather than modifying originals.
+- Reducer-driven state transitions with undo, redo, snapshots, presets, filtering, comparison, and catalog hydration.
+- Reusable image-processing pipeline in src/app/develop.ts.
+- Browser persistence through IndexedDB and a typed Tauri gateway for future desktop storage.
+- Export support for JPEG, PNG, TIFF, EXIF metadata, watermarks, ZIP delivery, and directory delivery.
+- Good baseline tests covering development, reducer behavior, exporting, RAW handling, diagnostics, performance, security, shortcuts, tokens, and Tauri integration.
+- Design tokens are generated and validated through scripts/tokens.mjs.
+
+HIGH-PRIORITY RECOMMENDATIONS
+
+1. Replace the synthetic RAW fallback with an explicit unsupported-RAW state.
+
+Evidence: src/app/raw.ts attempts to decode sensor data, but when no usable sensor strip is found it generates a Bayer mosaic from arbitrary file bytes. This can create an image that appears valid even though it is not meaningfully decoded from the RAW file.
+
+Recommended actions:
+- Prefer an embedded JPEG preview when available.
+- If no preview exists and the format is unsupported, mark the photo as noPreview.
+- Display a clear RAW decode unavailable state.
+- Only demosaic when the file layout and sensor metadata are known.
+- Move real RAW decoding into Rust using LibRaw or an equivalent native decoder.
+- Expose whether a photo is preview-based or sensor-decoded in the UI and export diagnostics.
+
+2. Finish the native import and preview pipeline.
+
+Evidence: src/app/tauriCatalogGateway.ts stores catalog metadata through SQLite/Rust but still uses browser IndexedDB for previews and file import.
+
+Recommended actions:
+- Implement native filesystem import.
+- Extract and cache previews natively.
+- Add native export support.
+- Add XMP sidecar reading and writing.
+- Define catalog migrations and recovery behavior.
+- Prevent the desktop product from depending on webview storage for primary assets.
+- Add tests for SQLite/catalog migration and browser-to-desktop adoption.
+
+3. Add automated CI.
+
+There is no visible GitHub Actions workflow in the repository structure. Add CI jobs for:
+
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+pnpm tokens:check
+cargo test --manifest-path src-tauri/Cargo.toml
+
+Run browser checks on Linux and add Tauri jobs for supported desktop platforms. Require CI before merging pull requests.
+
+4. Reduce the responsibility of src/screens/DevelopScreen.tsx.
+
+DevelopScreen.tsx is approximately 49 KB and is a maintenance hotspot. Extract these areas into focused components:
+- Develop toolbar and navigation controls.
+- Histogram panel.
+- Basic tone controls.
+- Color/HSL controls.
+- Detail and optics controls.
+- Geometry controls.
+- History and snapshot panel.
+- Keyboard shortcut behavior.
+
+Keep DevelopScreen responsible mainly for layout and composition. This will improve testability, reduce rerender risk, and make future native rendering integration easier.
+
+5. Add catalog-scale performance protections.
+
+Evidence: browserCatalogGateway.ts stores preview blobs in IndexedDB, while develop.ts and exporter.ts allocate image-sized pixel buffers and canvas objects.
+
+Recommended actions:
+- Maintain separate working previews and original references.
+- Use createImageBitmap for decoding where supported.
+- Move expensive tone processing to Web Workers or OffscreenCanvas.
+- Add a bounded preview cache with eviction.
+- Revoke object URLs when previews are replaced or removed.
+- Virtualize large library grids.
+- Add tests using many large images and realistic catalog sizes.
+- Add progress, cancellation, and memory-failure handling to imports and exports.
+
+MEDIUM-PRIORITY RECOMMENDATIONS
+
+6. Make persistence transactional and version-tolerant.
+
+Evidence: browserCatalogGateway.ts uses IndexedDB version 1 with catalog and previews stores. reducer.ts migrates development recipes, but the persistence layer has limited schema migration behavior.
+
+Recommended actions:
+- Add IndexedDB upgrade migrations.
+- Support partial or corrupt snapshot recovery.
+- Use atomic catalog updates where possible.
+- Add catalog backup and restore.
+- Distinguish unsupported versions from empty catalogs.
+- Clean up stale preview records during catalog migrations.
+
+7. Improve import deduplication.
+
+Evidence: reducer.ts currently identifies duplicates using name and fileSize.
+
+Recommended actions:
+- Use a content hash for small files.
+- Use a partial hash plus size and modification time for large files.
+- Use a filesystem identity in the native application where available.
+- Provide a user-visible duplicate resolution workflow.
+- Track source paths separately from display names.
+
+8. Separate sample catalog data from production state.
+
+Evidence: src/app/catalog.ts creates an initial set of fictional landscape images and metadata.
+
+Recommended actions:
+- Use an empty catalog on first production launch.
+- Keep demo data as an explicit demo mode or fixture.
+- Prevent sample photos from being mistaken for imported assets.
+- Add a clear reset-to-demo action for development builds.
+
+9. Harden Vite host configuration.
+
+Evidence: vite.config.ts uses host 0.0.0.0 and allowedHosts: true for both development and preview.
+
+Recommended actions:
+- Keep permissive settings only in the Figma Make or preview environment.
+- Restrict allowed hosts for normal local development.
+- Make host and port environment-configurable.
+- Document the network exposure implications.
+
+10. Add accessibility and interaction tests.
+
+Recommended coverage:
+- Accessible names and roles for sliders, buttons, dialogs, and image controls.
+- Keyboard navigation through the library grid.
+- Visible focus indicators.
+- Focus restoration after dialogs and panel changes.
+- Screen-reader descriptions for histogram and image status.
+- Reduced-motion behavior.
+- Disabled, loading, error, and no-preview states.
+
+PRODUCT AND ARCHITECTURE RECOMMENDATIONS
+
+11. Clearly distinguish preview editing from full RAW editing.
+
+The README states that imported RAW files currently use embedded previews or fallback processing. Make this visible in the product:
+- Label preview-based edits.
+- Show source quality and decode status.
+- Warn users when exporting from a preview rather than sensor data.
+- Do not claim full RAW fidelity until the native decoder is implemented.
+
+12. Create an export compatibility matrix.
+
+Document and test:
+- Metadata behavior for JPEG, PNG, and TIFF.
+- Orientation handling.
+- Maximum supported dimensions.
+- Directory export browser support.
+- TIFF limitations.
+- Behavior for photos without previews.
+- Cancellation and partial-export semantics.
+- Whether watermarking and sharpening occur before or after metadata insertion.
+
+13. Remove hard-coded time-sensitive copyright defaults.
+
+Evidence: src/app/exporter.ts includes defaults such as “© 2026 Glichylight”.
+
+Recommended actions:
+- Store creator and copyright defaults in user settings.
+- Generate the year dynamically only when intended.
+- Make built-in presets immutable templates that are copied into user-editable settings.
+- Avoid unexpectedly changing exported metadata based on the calendar year.
+
+14. Make feature status visible.
+
+Classify features in the README and UI as:
+- Working in browser.
+- Prototype or approximation.
+- Desktop-only.
+- Planned.
+- Unsupported.
+
+This is especially important for RAW decoding, Rust processing, XMP sidecars, GPU acceleration, and filesystem workflows.
+
+15. Add an end-to-end release smoke test.
+
+Test the complete user path:
+1. Open the app.
+2. Hydrate the catalog.
+3. Import an image.
+4. Select the image.
+5. Change exposure.
+6. Undo and redo the change.
+7. Reload the app.
+8. Confirm persistence.
+9. Export the edited image.
+10. Verify the output file and metadata.
+
+IMPLEMENTATION ROADMAP
+
+Phase 1: Reliability and transparency
+- Remove or clearly label synthetic RAW fallback behavior.
+- Add no-preview and decode-status UI states.
+- Add CI for typecheck, lint, tests, build, and token validation.
+- Add persistence corruption/version tests.
+- Add the release smoke test.
+
+Phase 2: Maintainability and performance
+- Split DevelopScreen.tsx into focused components.
+- Add preview cache limits and object URL cleanup.
+- Add large-catalog virtualization.
+- Move expensive processing off the main thread where practical.
+- Improve duplicate detection.
+
+Phase 3: Desktop foundation
+- Implement native filesystem import.
+- Implement native preview extraction and storage.
+- Complete SQLite migrations and catalog recovery.
+- Add native export and XMP sidecars.
+- Add cross-platform Tauri CI.
+
+Phase 4: Production image pipeline
+- Integrate a real RAW decoder.
+- Validate demosaicing and color management against reference images.
+- Add export compatibility and fidelity tests.
+- Document the boundary between preview editing and sensor-level editing.
+
+CONCRETE REPOSITORY EVIDENCE
+
+- README.md: describes the local-first editor, URL-hash screens, non-destructive DevelopValues recipes, scripts, Tauri status, and current RAW limitations.
+- package.json: defines dev, build, test, lint, typecheck, tokens, tokens:check, and tauri commands.
+- vite.config.ts: configures React, Tailwind, the @ alias, port 3000, 0.0.0.0 binding, and permissive allowed hosts.
+- src/App.tsx: implements hash-based navigation and global shortcuts for views, undo/redo, copy/paste recipes, and flags.
+- src/app/reducer.ts: owns state transitions, history, snapshots, imports, comparisons, filtering, preferences, and catalog snapshots.
+- src/app/store.ts: provides Zustand state, gateway selection, hydration, debounced saves, pagehide flushing, and visible-photo selectors.
+- src/app/raw.ts: parses EXIF/TIFF data, extracts embedded JPEG previews, performs browser-side demosaicing, and imports images.
+- src/app/develop.ts: defines neutral recipes, sanitization, presets, lens profiles, tone curves, blur, tone processing, geometry, and sharpening.
+- src/app/browserCatalogGateway.ts: persists catalogs and preview blobs through IndexedDB.
+- src/app/tauriCatalogGateway.ts: bridges catalog data to Rust/SQLite while retaining browser preview handling.
+- src/app/exporter.ts: renders edited images, writes EXIF, creates TIFF data, adds watermarks, creates ZIP files, and delivers downloads or directory output.
+- src/screens/DevelopScreen.tsx: contains the primary editing workspace and should be split into smaller feature components.
+- tests/: includes coverage for development, diagnostics, exporting, performance, RAW handling, reducer behavior, security, shortcuts, Tauri gateway behavior, and tokens.
+- tokens.json and docs/design-tokens.md: define and document the design-token system.
+
+FINAL PRIORITY ORDER
+
+1. Make RAW limitations explicit and eliminate misleading synthetic output.
+2. Add CI and release smoke testing.
+3. Complete persistence migration and recovery behavior.
+4. Reduce DevelopScreen complexity.
+5. Add memory and performance protections for large catalogs.
+6. Finish the native import/preview/export pipeline.
+7. Improve accessibility and document export/feature compatibility.
